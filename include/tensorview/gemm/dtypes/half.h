@@ -3,12 +3,12 @@
  *
  * Redistribution and use in source and binary forms, with or without
  *modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright notice,
+ * * Redistributions of source code must retain the above copyright notice,
  *this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
+ * * Redistributions in binary form must reproduce the above copyright
  *notice, this list of conditions and the following disclaimer in the
  *documentation and/or other materials provided with the distribution.
- *     * Neither the name of the NVIDIA CORPORATION nor the names of its
+ * * Neither the name of the NVIDIA CORPORATION nor the names of its
  *contributors may be used to endorse or promote products derived from this
  *software without specific prior written permission.
  *
@@ -184,7 +184,7 @@ struct alignas(2) half_t {
       static half_t
       convert(float const &flt) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-    return half_t(__float2half_rn(flt));
+    return tv::half_t::bitcast(__half_as_ushort(__float2half_rn(flt)));
 #else
 
 #if !defined(__CUDA_ARCH__) && CUTLASS_ENABLE_F16C
@@ -258,7 +258,7 @@ struct alignas(2) half_t {
   TV_HOST_DEVICE_INLINE
   static half_t convert(int const &n) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-    return half_t(__int2half_rn(n));
+    return tv::half_t::bitcast(__half_as_ushort(__int2half_rn(n)));
 #else
     return convert(float(n));
 #endif
@@ -268,7 +268,7 @@ struct alignas(2) half_t {
   TV_HOST_DEVICE_INLINE
   static half_t convert(unsigned const &n) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-    return half_t(__uint2half_rn(n));
+    return tv::half_t::bitcast(__half_as_ushort(__uint2half_rn(n)));
 #else
     return convert(float(n));
 #endif
@@ -336,6 +336,12 @@ struct alignas(2) half_t {
   /// Default constructor
   TV_HOST_DEVICE_INLINE
   half_t() : storage(0) {}
+  
+  #if defined(__CUDACC__) || defined(__NVCC__)
+    __host__ __device__ __half to_half() const {
+        return __ushort_as_half(static_cast<unsigned short>(storage));
+    }
+  #endif
 
   /// Reinterpret cast from CUDA's half type
 #if defined(TV_HARDWARE_ACC_CUDA)
@@ -343,6 +349,7 @@ struct alignas(2) half_t {
   explicit half_t(half const &x)
       : storage(reinterpret_cast<uint16_t const &>(x)) {}
 #endif
+
   /// Floating point conversion
   TV_HOST_DEVICE_INLINE
   explicit half_t(float x) { storage = convert(x).storage; }
@@ -367,6 +374,7 @@ struct alignas(2) half_t {
     return *this;
   }
 #endif
+
   /// Converts to float
   TV_HOST_DEVICE_INLINE
   operator float() const { return convert(*this); }
@@ -382,12 +390,6 @@ struct alignas(2) half_t {
   /// Casts to bool
   TV_HOST_DEVICE_INLINE
   operator bool() const { return (convert(*this) != 0.0f); }
-
-#if defined(TV_HARDWARE_ACC_CUDA)
-  /// Bitcasts to CUDA's half type
-  TV_HOST_DEVICE_INLINE
-  half to_half() const { return reinterpret_cast<half const &>(storage); }
-#endif
 
   /// Accesses raw internal state
   TV_HOST_DEVICE_INLINE
@@ -615,7 +617,7 @@ bool operator>=(half_t const &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t operator+(half_t const &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  return half_t(__hadd(lhs.to_half(), rhs.to_half()));
+  return tv::half_t::bitcast(__half_as_ushort(__hadd(lhs.to_half(), rhs.to_half())));
 #else
   return half_t(float(lhs) + float(rhs));
 #endif
@@ -624,7 +626,7 @@ half_t operator+(half_t const &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t operator-(half_t const &lhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  return half_t(__hneg(lhs.to_half()));
+  return tv::half_t::bitcast(__half_as_ushort(__hneg(lhs.to_half())));
 #else
   return half_t(-float(lhs));
 #endif
@@ -633,7 +635,7 @@ half_t operator-(half_t const &lhs) {
 TV_HOST_DEVICE_INLINE
 half_t operator-(half_t const &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  return half_t(__hsub(lhs.to_half(), rhs.to_half()));
+  return tv::half_t::bitcast(__half_as_ushort(__hsub(lhs.to_half(), rhs.to_half())));
 #else
   return half_t(float(lhs) - float(rhs));
 #endif
@@ -642,7 +644,7 @@ half_t operator-(half_t const &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t operator*(half_t const &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  return half_t(__hmul(lhs.to_half(), rhs.to_half()));
+  return tv::half_t::bitcast(__half_as_ushort(__hmul(lhs.to_half(), rhs.to_half())));
 #else
   return half_t(float(lhs) * float(rhs));
 #endif
@@ -651,7 +653,7 @@ half_t operator*(half_t const &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t operator/(half_t const &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  return half_t(__hdiv(lhs.to_half(), rhs.to_half()));
+  return tv::half_t::bitcast(__half_as_ushort(__hdiv(lhs.to_half(), rhs.to_half())));
 #else
   return half_t(float(lhs) / float(rhs));
 #endif
@@ -660,7 +662,7 @@ half_t operator/(half_t const &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t &operator+=(half_t &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hadd(lhs.to_half(), rhs.to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hadd(lhs.to_half(), rhs.to_half())));
 #else
   lhs = half_t(float(lhs) + float(rhs));
 #endif
@@ -670,7 +672,7 @@ half_t &operator+=(half_t &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t &operator-=(half_t &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hsub(lhs.to_half(), rhs.to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hsub(lhs.to_half(), rhs.to_half())));
 #else
   lhs = half_t(float(lhs) - float(rhs));
 #endif
@@ -680,7 +682,7 @@ half_t &operator-=(half_t &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t &operator*=(half_t &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hmul(lhs.to_half(), rhs.to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hmul(lhs.to_half(), rhs.to_half())));
 #else
   lhs = half_t(float(lhs) * float(rhs));
 #endif
@@ -690,7 +692,7 @@ half_t &operator*=(half_t &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t &operator/=(half_t &lhs, half_t const &rhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hdiv(lhs.to_half(), rhs.to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hdiv(lhs.to_half(), rhs.to_half())));
 #else
   lhs = half_t(float(lhs) / float(rhs));
 #endif
@@ -700,7 +702,7 @@ half_t &operator/=(half_t &lhs, half_t const &rhs) {
 TV_HOST_DEVICE_INLINE
 half_t &operator++(half_t &lhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hadd(lhs.to_half(), half_t(1.0f).to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hadd(lhs.to_half(), half_t(1.0f).to_half())));
 #else
   float tmp(lhs);
   ++tmp;
@@ -712,7 +714,7 @@ half_t &operator++(half_t &lhs) {
 TV_HOST_DEVICE_INLINE
 half_t &operator--(half_t &lhs) {
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hsub(lhs.to_half(), half_t(1.0f).to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hsub(lhs.to_half(), half_t(1.0f).to_half())));
 #else
   float tmp(lhs);
   --tmp;
@@ -725,7 +727,7 @@ TV_HOST_DEVICE_INLINE
 half_t operator++(half_t &lhs, int) {
   half_t ret(lhs);
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hadd(lhs.to_half(), half_t(1.0f).to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hadd(lhs.to_half(), half_t(1.0f).to_half())));
 #else
   float tmp(lhs);
   tmp++;
@@ -738,7 +740,7 @@ TV_HOST_DEVICE_INLINE
 half_t operator--(half_t &lhs, int) {
   half_t ret(lhs);
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-  lhs = half_t(__hsub(lhs.to_half(), half_t(1.0f).to_half()));
+  lhs = tv::half_t::bitcast(__half_as_ushort(__hsub(lhs.to_half(), half_t(1.0f).to_half())));
 #else
   float tmp(lhs);
   tmp--;

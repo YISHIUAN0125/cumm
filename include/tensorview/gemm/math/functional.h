@@ -41,6 +41,16 @@ namespace math {
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+template <typename T>
+struct complex {
+    T real, imag;
+};
+
+template <typename T>
+__host__ __device__ constexpr complex<T> conj(complex<T> const& c) {
+    return complex<T>{c.real, -c.imag};
+}
+
 template <typename T> struct plus {
   TV_HOST_DEVICE_INLINE
   T operator()(T lhs, T const &rhs) const {

@@ -19,6 +19,7 @@ TODO add CAS
 #pragma once
 #include <tensorview/core/all.h>
 #include <tensorview/core/arrayops/simple.h>
+#include <cooperative_groups.h>
 #if defined(TV_METAL_RTC)
 #include <metal_stdlib>
 #endif

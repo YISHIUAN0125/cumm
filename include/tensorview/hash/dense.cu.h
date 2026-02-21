@@ -14,6 +14,7 @@
 
 #pragma once
 #include "hash.cu.h"
+#include <tensorview/parallel/kernel1d.h>
 
 namespace tv {
 

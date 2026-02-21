@@ -29,6 +29,12 @@
 
 #include <tensorview/core/all.h>
 #include <tensorview/gemm/dtypes/all.h>
+
+#include <cuda_fp8.h>
+using float_e4m3_t = __nv_fp8_e4m3;
+using float_e5m2_t = __nv_fp8_e5m2;
+#include <tensorview/gemm/dtypes/complex.h>
+
 #if !defined(__CUDACC_RTC__)
 #include <fenv.h>
 #include <cfenv>
@@ -396,7 +402,7 @@ struct NumericConverter<half_t, float, FloatRoundStyle::round_toward_zero> {
   static result_type convert(source_type const & flt) {
 
   #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ >= 530)
-    return half_t(__float2half_rz(flt));
+    return tv::half_t::bitcast(__half_as_ushort(__float2half_rz(flt)));
   #else
     // software implementation rounds toward nearest even
     unsigned const& s = reinterpret_cast<unsigned const &>(flt);
